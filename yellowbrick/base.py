@@ -14,14 +14,17 @@
 Abstract base classes and interface for Yellowbrick.
 """
 
-import matplotlib.pyplot as plt
 import math
+import warnings
+import matplotlib.pyplot as plt
 
 from .utils.wrapper import Wrapper
 from sklearn.base import BaseEstimator
+from .exceptions import YellowbrickWarning
 from .utils import get_model_name, isestimator
 from sklearn.model_selection import cross_val_predict as cvp
 from .exceptions import YellowbrickValueError, YellowbrickTypeError
+
 
 ##########################################################################
 ## Base class hierarchy
@@ -182,7 +185,7 @@ class Visualizer(BaseEstimator):
         """
         return self.ax
 
-    def poof(self, outpath=None, **kwargs):
+    def poof(self, outpath=None, clear_figure=False, **kwargs):
         """
         Poof makes the magic happen and a visualizer appear! You can pass in
         a path to save the figure to disk with various backends, or you can
@@ -192,7 +195,11 @@ class Visualizer(BaseEstimator):
         Parameters
         ----------
         outpath: string, default: None
-            path or None. Save  figure to disk or if None show in window
+            path or None. Save figure to disk or if None show in window
+
+        clear_figure: boolean, default: False
+            When True, this flag clears the figure after saving to file or
+            showing on screen. This is useful when making consecutive plots.
 
         kwargs: dict
             generic keyword arguments.
@@ -203,7 +210,14 @@ class Visualizer(BaseEstimator):
         primarily called by the user to render the visualization.
         """
         # Ensure that draw has been called
-        if self._ax is None: return
+        if self._ax is None:
+            warn_message = (
+                "{} does not have a reference to a matplotlib.Axes "
+                "the figure may not render as expected!"
+            )
+            warnings.warn(
+                warn_message.format(self.__class__.__name__), YellowbrickWarning
+            )
 
         # Finalize the figure
         self.finalize()
@@ -212,6 +226,9 @@ class Visualizer(BaseEstimator):
             plt.savefig(outpath, **kwargs)
         else:
             plt.show()
+
+        if clear_figure:
+            plt.gcf().clear()
 
     ##////////////////////////////////////////////////////////////////////
     ## Helper Functions
@@ -534,7 +551,7 @@ class VisualizerGrid(Visualizer):
 
         return self
 
-    def poof(self, outpath=None, **kwargs):
+    def poof(self, outpath=None, clear_figure=False, **kwargs):
 
         if self.axarr is None: return
 
@@ -553,3 +570,6 @@ class VisualizerGrid(Visualizer):
             plt.savefig(outpath, **kwargs)
         else:
             plt.show()
+
+        if clear_figure:
+            plt.gcf().clear()

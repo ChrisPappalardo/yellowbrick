@@ -19,7 +19,6 @@ Ensure that the DiscriminationThreshold visualizations work.
 ##########################################################################
 
 import sys
-import six
 import pytest
 import yellowbrick as yb
 import matplotlib.pyplot as plt
@@ -27,6 +26,7 @@ import matplotlib.pyplot as plt
 from yellowbrick.classifier.threshold import *
 from yellowbrick.utils import is_probabilistic, is_classifier
 
+from unittest.mock import patch
 from tests.base import VisualTestCase
 from tests.dataset import DatasetMixin
 from numpy.testing.utils import assert_array_equal
@@ -44,11 +44,6 @@ try:
 except ImportError:
     pd = None
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
-
 
 ##########################################################################
 ## DiscriminationThreshold Test Cases
@@ -58,18 +53,6 @@ class TestDiscriminationThreshold(VisualTestCase, DatasetMixin):
     """
     DiscriminationThreshold visualizer tests
     """
-
-    def test_deprecated_aliases(self):
-        """
-        Assert aliases are deprecated
-        """
-        # TODO: Remove in v0.8
-        if yb.__version_info__["minor"] >= 8:
-            pytest.fail("alias deprecation should be removed in v0.8")
-
-        for alias in (ThresholdVisualizer, ThreshViz):
-            with pytest.deprecated_call():
-                alias(BernoulliNB())
 
     @pytest.mark.xfail(
         sys.platform == 'win32', reason="images not close on windows"
@@ -172,8 +155,7 @@ class TestDiscriminationThreshold(VisualTestCase, DatasetMixin):
         out = visualizer.fit(X, y)
 
         assert out is visualizer
-        if six.PY3:
-            mock_draw.assert_called_once()
+        mock_draw.assert_called_once()
         assert hasattr(visualizer, "thresholds_")
         assert hasattr(visualizer, "cv_scores_")
 
@@ -307,7 +289,7 @@ class TestDiscriminationThreshold(VisualTestCase, DatasetMixin):
         assert viz._check_cv(splits, random_state=23).random_state == 23
 
         splits = StratifiedShuffleSplit(n_splits=1, random_state=181)
-        assert viz._check_cv(splits, random_state=None).random_state is 181
+        assert viz._check_cv(splits, random_state=None).random_state == 181
         assert viz._check_cv(splits, random_state=72).random_state == 72
 
     def test_bad_exclude(self):

@@ -18,12 +18,16 @@ https://bl.ocks.org/rpgove/0060ff3b656618e9136b
 ## Imports
 ##########################################################################
 
+import collections
 import time
 import numpy as np
 import scipy.sparse as sp
+import warnings
 
 from .base import ClusteringScoreVisualizer
-from ..exceptions import YellowbrickValueError
+from ..style.palettes import LINE_COLOR
+from ..exceptions import YellowbrickValueError, YellowbrickWarning
+from ..utils import KneeLocator
 
 from sklearn.metrics import silhouette_score
 from sklearn.metrics import calinski_harabaz_score
@@ -97,8 +101,8 @@ def distortion_score(X, labels, metric='euclidean'):
         distances = pairwise_distances(instances, center, metric=metric)
         distances = distances ** 2
 
-        # Add the mean square distance to the distortion
-        distortion += distances.mean()
+        # Add the sum of square distance to the distortion
+        distortion += distances.sum()
 
     return distortion
 
@@ -125,11 +129,11 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
 
     The elbow method runs k-means clustering on the dataset for a range of
     values for k (say from 1-10) and then for each value of k computes an
-    average score for all clusters. By default, the ``distortion_score`` is
+    average score for all clusters. By default, the ``distortion`` score is
     computed, the sum of square distances from each point to its assigned
-    center. Other metrics can also be used such as the ``silhouette_score``,
+    center. Other metrics can also be used such as the ``silhouette`` score,
     the mean silhouette  coefficient for all samples or the
-    ``calinski_harabaz_score``, which computes the ratio of dispersion between
+    ``calinski_harabaz`` score, which computes the ratio of dispersion between
     and within clusters.
 
     When these overall metrics for each model are plotted, it is possible to
@@ -150,10 +154,11 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         The axes to plot the figure on. If None is passed in the current axes
         will be used (or generated if required).
 
-    k : integer or tuple
-        The range of k to compute silhouette scores for. If a single integer
-        is specified, then will compute the range (2,k) otherwise the
-        specified range in the tuple is used.
+    k : integer, tuple, or iterable
+        The k values to compute silhouette scores for. If a single integer
+        is specified, then will compute the range (2,k). If a tuple of 2
+        integers is specified, then k will be in np.arange(k[0], k[1]).
+        Otherwise, specify an iterable of integers to use as values for k.
 
     metric : string, default: ``"distortion"``
         Select the scoring metric to evaluate the clusters. The default is the
@@ -168,9 +173,30 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         Display the fitting time per k to evaluate the amount of time required
         to train the clustering model.
 
+    locate_elbow : bool, default: True 
+        Automatically find the "elbow" or "knee" which likely corresponds to the optimal 
+        value of k using the "knee point detection algorithm". The knee point detection 
+        algorithm finds the point of maximum curvature, which in a well-behaved clustering
+        problem also represents the pivot of the elbow curve. The point is labeled with a
+        dashed line and annotated with the score and k values.      
+
     kwargs : dict
         Keyword arguments that are passed to the base class and may influence
         the visualization as defined in other Visualizers.
+
+    Attributes
+    ----------
+    k_scores_ : array of shape (n,) where n is no. of k values
+        The silhouette score corresponding to each k value.
+
+    k_timers_ : array of shape (n,) where n is no. of k values
+        The time taken to fit n KMeans model corresponding to each k value.
+
+    elbow_value_ : integer
+        The optimal value of k.
+
+    elbow_score_ : float
+        The silhouette score corresponding to the optimal value of k.         
 
     Examples
     --------
@@ -186,20 +212,27 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
 
     If you get a visualizer that doesn't have an elbow or inflection point,
     then this method may not be working. The elbow method does not work well
-    if the data is not very clustered; in this case you might see a smooth
-    curve and the value of k is unclear. Other scoring methods such as BIC or
-    SSE also can be used to explore if clustering is a correct choice.
+    if the data is not very clustered; in this case, you might see a smooth
+    curve and the value of k is unclear. Other scoring methods, such as BIC or
+    SSE, also can be used to explore if clustering is a correct choice.
 
     For a discussion on the Elbow method, read more at
     `Robert Gove's Block <https://bl.ocks.org/rpgove/0060ff3b656618e9136b>`_.
+    To know about 'Knee Point Detection Algorithm' read at `Finding a "kneedle" in a Haystack
+    <https://raghavan.usc.edu//papers/kneedle-simplex11.pdf>`_.  
+    
+    .. seealso:: The scikit-learn documentation for the `silhouette_score
+        <https://bit.ly/2LYWjYb>`_ and `calinski_harabaz_score
+        <https://bit.ly/2LW3Zu9>`_. The default, `distortion_score`, is
+        implemented in`yellowbrick.cluster.elbow`.
 
     .. todo:: add parallelization option for performance
-    .. todo:: add different metrics for scores and silhoutte
-    .. todo:: add timing information about how long its taking
+    .. todo:: add different metrics for scores and silhouette
+    .. todo:: add timing information about how long it's taking
     """
 
     def __init__(self, model, ax=None, k=10,
-                 metric="distortion", timings=True, **kwargs):
+                 metric="distortion", timings=True, locate_elbow=True, **kwargs):
         super(KElbowVisualizer, self).__init__(model, ax=ax, **kwargs)
 
         # Get the scoring method
@@ -211,22 +244,24 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
 
         # Store the arguments
         self.scoring_metric = KELBOW_SCOREMAP[metric]
+        self.metric = metric
         self.timings = timings
+        self.locate_elbow=locate_elbow
 
         # Convert K into a tuple argument if an integer
         if isinstance(k, int):
-            k = (2, k+1)
-
-        # Expand k in to the values we will use, capturing exceptions
-        try:
-            k = tuple(k)
+            self.k_values_ = list(range(2, k+1))
+        elif isinstance(k, tuple) and len(k) == 2 and \
+                all(isinstance(x, (int, np.integer)) for x in k):
             self.k_values_ = list(range(*k))
-        except:
+        elif isinstance(k, collections.Iterable) and \
+                all(isinstance(x, (int, np.integer)) for x in k):
+            self.k_values_ = list(k)
+        else:
             raise YellowbrickValueError((
-                "Specify a range or maximal K value, the value '{}' "
-                "is not a valid argument for K.".format(k)
+                "Specify an iterable of integers, a range, or maximal K value,"
+                " the value '{}' is not a valid argument for K.".format(k)
             ))
-
 
         # Holds the values of the silhoutte scores
         self.k_scores_ = None
@@ -234,12 +269,18 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
     def fit(self, X, y=None, **kwargs):
         """
         Fits n KMeans models where n is the length of ``self.k_values_``,
-        storing the silhoutte scores in the ``self.k_scores_`` attribute.
+        storing the silhouette scores in the ``self.k_scores_`` attribute.
+        The "elbow" and silhouette score corresponding to it are stored in
+        ``self.elbow_value`` and ``self.elbow_score`` respectively.
         This method finishes up by calling draw to create the plot.
         """
 
         self.k_scores_ = []
         self.k_timers_ = []
+
+        if self.locate_elbow:
+            self.elbow_value_ = None
+            self.elbow_score_ = None
 
         for k in self.k_values_:
             # Compute the start time for each  model
@@ -253,7 +294,24 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
             self.k_timers_.append(time.time() - start)
             self.k_scores_.append(
                 self.scoring_metric(X, self.estimator.labels_)
-            )
+            )    
+
+        if self.locate_elbow:
+            locator_kwargs = {
+                'distortion': {'curve_nature': 'convex', 'curve_direction': 'decreasing'},
+                'silhouette': {'curve_nature': 'concave', 'curve_direction': 'increasing'},
+                'calinski_harabaz': {'curve_nature': 'concave', 'curve_direction': 'increasing'},
+                }.get(self.metric, {})   
+            elbow_locator = KneeLocator(self.k_values_,self.k_scores_,**locator_kwargs)
+            self.elbow_value_ = elbow_locator.knee
+            if self.elbow_value_ == None:
+                warning_message=\
+                "No 'knee' or 'elbow' point detected, " \
+                "pass `locate_elbow=False` to remove the warning"   
+                warnings.warn(warning_message,YellowbrickWarning) 
+            else:
+                self.elbow_score_ = self.k_scores_[self.k_values_.index(self.elbow_value_)]
+                   
 
         self.draw()
 
@@ -264,8 +322,11 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         Draw the elbow curve for the specified scores and values of K.
         """
         # Plot the silhouette score against k
-        self.ax.plot(self.k_values_, self.k_scores_, marker="D", label="score")
-
+        self.ax.plot(self.k_values_, self.k_scores_, marker="D")
+        if self.locate_elbow and self.elbow_value_!=None:
+            elbow_label = "$elbow\ at\ k={}, score={:0.3f}$".format(self.elbow_value_, self.elbow_score_)
+            self.ax.axvline(self.elbow_value_, c=LINE_COLOR, linestyle="--", label=elbow_label)
+            
         # If we're going to plot the timings, create a twinx axis
         if self.timings:
             self.axes = [self.ax, self.ax.twinx()]
@@ -274,12 +335,14 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
                 c='g', marker="o", linestyle="--", alpha=0.75,
             )
 
+
         return self.ax
 
     def finalize(self):
         """
         Prepare the figure for rendering by setting the title as well as the
         X and Y axis labels and adding the legend.
+        
         """
         # Get the metric name
         metric = self.scoring_metric.__name__.replace("_", " ").title()
@@ -292,6 +355,10 @@ class KElbowVisualizer(ClusteringScoreVisualizer):
         # Set the x and y labels
         self.ax.set_xlabel('k')
         self.ax.set_ylabel(metric.lower())
+        
+        #set the legend if locate_elbow=True
+        if self.locate_elbow and self.elbow_value_!=None:
+            self.ax.legend(loc='best', fontsize='medium')
 
         # Set the second y axis labels
         if self.timings:

@@ -3,6 +3,8 @@
 #
 # Author:  Benjamin Bengfort <benjamin@bengfort.com>
 # Created: Fri Mar 02 15:23:22 2018 -0500
+# Author:  Rebecca Bilbro <rbilbro@districtdatalabs.com>
+# Updated: Sun Jun 24 12:10:43 2018 -0500
 #
 # Copyright (C) 2018 District Data Labs
 # For license information, see LICENSE.txt
@@ -25,19 +27,16 @@ import matplotlib.pyplot as plt
 
 from yellowbrick.exceptions import NotFitted
 from yellowbrick.features.importances import *
+from yellowbrick.datasets import load_occupancy, load_concrete
 
-from sklearn.base import BaseEstimator
-from sklearn.linear_model import Lasso
+from sklearn.datasets import load_iris
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.linear_model import LogisticRegression, Lasso
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 
+from unittest import mock
 from tests.base import VisualTestCase
-from tests.dataset import DatasetMixin
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 try:
     import pandas as pd
@@ -49,9 +48,9 @@ except ImportError:
 ## Feature Importances Tests
 ##########################################################################
 
-class TestFeatureImportancesVisualizer(VisualTestCase, DatasetMixin):
+class TestFeatureImportancesVisualizer(VisualTestCase):
     """
-    FeatureImportances visualizer
+    Test FeatureImportances visualizer
     """
 
     @pytest.mark.xfail(
@@ -62,15 +61,8 @@ class TestFeatureImportancesVisualizer(VisualTestCase, DatasetMixin):
         Integration test of visualizer with feature importances param
         """
 
-        occupancy = self.load_data('occupancy')
-        features = [
-            "temperature", "relative_humidity", "light", "C02", "humidity"
-        ]
-
-        # Extract X and y as numpy arrays
-        X = occupancy[features].copy()
-        X = X.view((float, len(X.dtype.names)))
-        y = occupancy['occupancy'].astype(int)
+        # Load the test dataset
+        X, y = load_occupancy(return_dataset=True).to_numpy()
 
         fig = plt.figure()
         ax = fig.add_subplot()
@@ -78,7 +70,7 @@ class TestFeatureImportancesVisualizer(VisualTestCase, DatasetMixin):
         clf = GradientBoostingClassifier(random_state=42)
         viz = FeatureImportances(clf, ax=ax)
         viz.fit(X, y)
-        viz.poof()
+        viz.finalize()
 
         self.assert_images_similar(viz)
 
@@ -90,22 +82,19 @@ class TestFeatureImportancesVisualizer(VisualTestCase, DatasetMixin):
         Integration test of visualizer with coef param
         """
 
-        concrete = self.load_data('concrete')
-        feats = ['cement','slag','ash','water','splast','coarse','fine','age']
-
-        # Create X and y datasets as numpy arrays
-        X = concrete[feats].copy()
-        X = X.view((float, len(X.dtype.names)))
-        y = concrete['strength']
+        # Load the test dataset
+        dataset = load_concrete(return_dataset=True)
+        X, y = dataset.to_numpy()
+        features = dataset.meta["features"]
 
         fig = plt.figure()
         ax = fig.add_subplot()
 
         reg = Lasso(random_state=42)
-        feats = list(map(lambda s: s.title(), feats))
-        viz = FeatureImportances(reg, ax=ax, labels=feats, relative=False)
+        features = list(map(lambda s: s.title(), features))
+        viz = FeatureImportances(reg, ax=ax, labels=features, relative=False)
         viz.fit(X, y)
-        viz.poof()
+        viz.finalize()
 
         self.assert_images_similar(viz)
 
@@ -117,15 +106,8 @@ class TestFeatureImportancesVisualizer(VisualTestCase, DatasetMixin):
         Integration test of quick method
         """
 
-        occupancy = self.load_data('occupancy')
-        features = [
-            "temperature", "relative_humidity", "light", "C02", "humidity"
-        ]
-
-        # Create X and y datasets as numpy arrays
-        X = occupancy[features].copy()
-        X = X.view((float, len(X.dtype.names)))
-        y = occupancy['occupancy'].astype(int)
+        # Load the test dataset
+        X, y = load_occupancy(return_dataset=True).to_numpy()
 
         fig = plt.figure()
         ax = fig.add_subplot()
@@ -224,6 +206,45 @@ class TestFeatureImportancesVisualizer(VisualTestCase, DatasetMixin):
 
         expected = np.array([-0.38, -0.08, -0.05, 0.07, 0.1, 0.16, 0.2, .23, 0.4])
         npt.assert_array_equal(visualizer.feature_importances_, expected)
+
+    def test_multi_coefs(self):
+        """
+        Test fit with multidimensional coefficients and stack warning
+        """
+        coefs = np.array([
+            [0.4, 0.2, -0.08, 0.07, 0.16, 0.23, -0.38, 0.1, -0.05],
+            [0.41, 0.12, -0.1, 0.1, 0.14, 0.21, 0.01, 0.31, -0.15],
+            [0.31, 0.2, -0.01, 0.1, 0.22, 0.23, 0.01, 0.12, -0.15]
+            ]
+        )
+
+        model = MockEstimator()
+        model.make_importance_param(value=coefs)
+
+        visualizer = FeatureImportances(model, stack=False)
+
+        with pytest.warns(YellowbrickWarning):
+            visualizer.fit(
+                np.random.rand(100, len(np.mean(coefs, axis=0))), np.random.rand(100)
+            )
+
+        npt.assert_equal(visualizer.feature_importances_.ndim, 1)
+
+    @pytest.mark.xfail(
+        sys.platform == 'win32', reason="images not close on windows"
+    )
+    def test_multi_coefs_stacked(self):
+        """
+        Test stack plot with multidimensional coefficients
+        """
+        X, y = load_iris(True)
+
+        viz = FeatureImportances(LogisticRegression(random_state=222), stack=True)
+        viz.fit(X, y)
+        viz.finalize()
+
+        npt.assert_equal(viz.feature_importances_.shape, (3, 4))
+        self.assert_images_similar(viz)
 
 
     @pytest.mark.skipif(pd is None, reason="pandas is required for this test")
@@ -328,6 +349,21 @@ class TestFeatureImportancesVisualizer(VisualTestCase, DatasetMixin):
         with pytest.raises(YellowbrickTypeError):
             visualizer._find_importances_param()
 
+    def test_find_classes_param_not_found(self):
+        """
+        Raises an exception when classes param not found
+        """
+        model = MockClassifier()
+        visualizer = FeatureImportances(model)
+
+        assert not hasattr(model, 'classes_')
+
+        e = 'could not find classes_ param on {}'.format(
+            visualizer.estimator.__class__.__name__
+        )
+        with pytest.raises(YellowbrickTypeError, match=e):
+            visualizer._find_classes_param()
+
     def test_xlabel(self):
         """
         Check the various xlabels are sensical
@@ -399,3 +435,10 @@ class MockEstimator(BaseEstimator):
 
     def fit(self, X, y=None, **kwargs):
         return self
+
+
+class MockClassifier(BaseEstimator, ClassifierMixin):
+    """
+    Creates empty classifier.
+    """
+    pass

@@ -3,10 +3,190 @@
 Changelog
 =========
 
-Version 0.6.0
--------------
+Version 1.0
+-----------
+* Tag: v1.0_
+* Deployed: Not yet deployed
+* Contributors: Benjamin Bengfort, Rebecca Bilbro, Nathan Danielsen, Kristen McIntyre, Larry Gray, Prema Roman, Ry Whittington, John Healy, Sourav Singh, Francois Dion, Jerome Massot, Zijie (ZJ) Poh, Rohit Ganapathy, Nabanita Dash, Justin Ormont
 
-* Tag: v0.6.0_
+.. warning:: **Python 2 Deprecation**: Please note that this release deprecates Yellowbrick's support for Python 2.7. After careful consideration and following the lead of our primary dependencies (NumPy, scikit-learn, and Matplolib), we have chosen to move forward with the community and support Python 3.4 and later.
+
+Major Changes:
+    - New ``JointPlot`` visualizer that is specifically designed for machine learning. The new visualizer can compare a feature to a target, features to features, and even feature to feature to target using color. The visualizer gives correlation information at a glance and is designed to work on ML datasets.
+    - New ``PosTagVisualizer`` is specifically designed for diagnostics around natural language processing and grammar-based feature extraction for machine learning. This new visualizer shows counts of different parts-of-speech throughout a tagged corpus.
+    - New datasets module that provide greater support for interacting with Yellowbrick example datasets including support for Pandas, npz, and text corpora.
+    - Management repository for Yellowbrick example data, yellowbrick-datasets.
+    - Add support for matplotlib 3.0.1 or greater.
+    - ``UMAPVisualizer`` as an alternative manifold to TSNE for corpus visualization that is fast enough to not require preprocessing PCA or SVD decomposition and preserves higher order similarities and distances.
+    - Added ``..plot::`` directives to the documentation to automatically build the images along with the docs and keep them as up to date as possible. The directives also include the source code making it much simpler to recreate examples.
+
+Minor Changes:
+    - Updated Rank2D to include Kendall-Tau metric.
+    - Added ``target_color_type`` functionality to determine continuous or discrete color representations based on the type of the target variable.
+    - Added user specification of ISO F1 values to ``PrecisionRecallCurve`` and updated the quick method to accept train and test splits.
+    - Added code review checklist and conventions to the documentation and expanded the contributing docs to include other tricks and tips.
+    - Added polish to missing value visualizers code, tests, and documentation.
+    - Improved RankD tests for better coverage.
+    - Added quick method test for ``DispersionPlot`` visualizer.
+    - BugFix: fixed resolve colors bug in TSNE and UMAP text visualizers and added regression tests to prevent future errors.
+    - BugFix: fixed ``PrecisionRecallCurve`` visual display problem with multi-class labels.
+    - BugFix: fixed the ``RFECV`` step display bug.
+    - Extended FeatureImportances documentation and tests for stacked importances and added a warning when stack should be true.
+    - Improved the documentation readability and structure.
+    - Refreshed the README.md and added testing and documentation READMEs.
+    - Updated the gallery to generate thumbnail-quality images.
+    - Updated the example notebooks and created a quickstart notebook.
+    - Fixed broken links in the documentation.
+
+Compatibility Notes:
+    - This version provides support for matplotlib 3.0.1 or greater and drops support for matplotlib versions less than 2.0.
+    - This version drops support for Python 2
+
+.. _v1.0: https://github.com/DistrictDataLabs/yellowbrick/releases/tag/v1.0
+
+
+Hotfix 0.9.1
+------------
+
+This hotfix adds matplotlib3 support by requiring any version of matplotlib except for 3.0.0 which had a backend bug that affected Yellowbrick.
+
+* Tag: v0.9.1_
+* Deployed: Tuesday, February 5, 2019
+* Contributors: Benjamin Bengfort, Rebecca Bilbro, Ian Ozsvald, Francois Dion
+
+.. _v0.9.1: https://github.com/DistrictDataLabs/yellowbrick/releases/tag/v0.9.1
+
+
+Version 0.9
+-----------
+* Tag: v0.9_
+* Deployed: Wednesday, November 14, 2018
+* Contributors: Rebecca Bilbro, Benjamin Bengfort, Zijie (ZJ) Poh, Kristen McIntyre, Nathan Danielsen, David Waterman, Larry Gray, Prema Roman, Juan Kehoe, Alyssa Batula, Peter Espinosa, Joanne Lin, @rlshuhart, @archaeocharlie, @dschoenleber, Tim Black, @iguk1987, Mohammed Fadhil, Jonathan Lacanlale, Andrew Godbehere, Sivasurya Santhanam, Gopal Krishna
+
+Major Changes:
+    - Target module added for visualizing dependent variable in supervised models.
+    - Prototype missing values visualizer in contrib module.
+    - ``BalancedBinningReference`` visualizer for thresholding unbalanced data (undocumented).
+    - ``CVScores`` visualizer to instrument cross-validation.
+    - ``FeatureCorrelation`` visualizer to compare relationship between a single independent variable and the target.
+    - ``ICDM`` visualizer, intercluster distance mapping using projections similar to those used in pyLDAVis.
+    - ``PrecisionRecallCurve`` visualizer showing the relationship of precision and recall in a threshold-based classifier.
+    - Enhanced ``FeatureImportance`` for multi-target and multi-coefficient models (e.g probabilistic models) and allows stacked bar chart.
+    - Adds option to plot PDF to ``ResidualsPlot`` histogram.
+    - Adds document boundaries option to ``DispersionPlot`` and uses colored markers to depict class.
+    - Added alpha parameter for opacity to the scatter plot visualizer.
+    - Modify ``KElbowVisualizer`` to accept a list of k values.
+    - ``ROCAUC`` bugfix to allow binary classifiers that only have a decision function.
+    - ``TSNE`` bugfix so that title and size params are respected.
+    - ``ConfusionMatrix`` bugfix to correct percentage displays adding to 100.
+    - ``ResidualsPlot`` bugfix to ensure specified colors are both in histogram and scatterplot.
+    - Fixed unicode decode error on Py2 compatible Windows using Hobbies corpus.
+    - Require matplotlib 1.5.1 or matplotlib 2.0 (matplotlib 3.0 not supported yet).
+    - Deprecated percent and sample_weight arguments to ``ConfusionMatrix`` fit method.
+    - Yellowbrick now depends on SciPy 1.0 and scikit-learn 0.20.
+
+Minor Changes:
+    - Removed hardcoding of ``SilhouetteVisualizer`` axes dimensions.
+    - Audit classifiers to ensure they conform to score API.
+    - Fix for ``Manifold`` ``fit_transform`` bug.
+    - Fixed ``Manifold`` import bug.
+    - Started reworking datasets API for easier loading of examples.
+    - Added ``Timer`` utility for keeping track of fit times.
+    - Added slides to documentation for teachers teaching ML/Yellowbrick.
+    - Added an FAQ to the documentation.
+    - Manual legend drawing utility.
+    - New examples notebooks for regression and clustering.
+    - Example of interactive classification visualization using ipywidgets.
+    - Example of using Yellowbrick with PyTorch.
+    - Repairs to ``ROCAUC`` tests and binary/multiclass ``ROCAUC`` construction.
+    - Rename tests/random.py to tests/rand.py to prevent NumPy errors.
+    - Improves ``ROCAUC``, ``KElbowVisualizer``, and ``SilhouetteVisualizer`` documentation.
+    - Fixed visual display bug in ``JointPlotVisualizer``.
+    - Fixed image in ``JointPlotVisualizer`` documentation.
+    - Clear figure option to poof.
+    - Fix color plotting error in residuals plot quick method.
+    - Fixed bugs in ``KElbowVisualizer``, ``FeatureImportance``, Index, and Datasets documentation.
+    - Use LGTM for code quality analysis (replacing Landscape).
+    - Updated contributing docs for better PR workflow.
+    - Submitted JOSS paper.
+
+
+.. _v0.9: https://github.com/DistrictDataLabs/yellowbrick/releases/tag/v0.9
+
+
+Version 0.8
+-----------
+* Tag: v0.8_
+* Deployed: Thursday, July 12, 2018
+* Contributors: Rebecca Bilbro, Benjamin Bengfort, Nathan Danielsen, Larry Gray, Prema Roman, Adam Morris, Kristen McIntyre, Raul Peralta, Sayali Sonawane, Alyssa Riley, Petr Mitev, Chris Stehlik, @thekylesaurus, Luis Carlos Mejia Garcia, Raul Samayoa, Carlo Mazzaferro
+
+Major Changes:
+    - Added Support to ``ClassificationReport`` - @ariley1472
+    - We have an updated Image Gallery - @ralle123
+    - Improved performance of ``ParallelCoordinates`` Visualizer @ thekylesaurus
+    - Added Alpha Transparency to ``RadViz`` Visualizer @lumega
+    - ``CVScores`` Visualizer - @pdamodaran
+    - Added fast and alpha parameters to ``ParallelCoordinates`` visualizer @bbengfort
+    - Make support an optional parameter for ``ClassificationReport`` @lwgray
+    - Bug Fix for Usage of multidimensional arrays in ``FeatureImportance`` visualizer @rebeccabilbro
+    - Deprecate ``ScatterVisualizer`` to contrib @bbengfort
+    - Implements histogram alongside ``ResidualsPlot`` @bbengfort
+    - Adds biplot to the ``PCADecomposition`` visualizer @RaulPL
+    - Adds Datasaurus Dataset to show importance of visualizing data @lwgray
+    - Add ``DispersionPlot`` Plot @lwgray
+
+Minor Changes:
+    - Fix grammar in tutorial.rst - @chrisfs
+    - Added Note to tutorial indicating subtle differences when working in Jupyter notebook - @chrisfs
+    - Update Issue template @bbengfort
+    - Added Test to check for NLTK postag data availability - @Sayali
+    - Clarify quick start documentation @mitevpi
+    - Deprecated ``DecisionBoundary``
+    - Threshold Visualization aliases deprecated
+
+.. _v0.8: https://github.com/DistrictDataLabs/yellowbrick/releases/tag/v0.8.0
+
+Version 0.7
+-----------
+
+* Tag: v0.7_
+* Deployed: Thursday, May 17, 2018
+* Contributors: Benjamin Bengfort, Nathan Danielsen, Rebecca Bilbro, Larry Gray, Ian Ozsvald, Jeremy Tuloup, Abhishek Bharani, Raúl Peralta Lozada,  Tabishsada, Kristen McIntyre, Neal Humphrey
+
+Changes:
+
+    - *New Feature!* Manifold visualizers implement high-dimensional visualization for non-linear structural feature analysis.
+    - *New Feature!*  There is now a  ``model_selection`` module with ``LearningCurve`` and ``ValidationCurve`` visualizers.
+    - *New Feature!* The ``RFECV`` (recursive feature elimination)  visualizer with cross-validation visualizes how removing the least performing features improves the overall model.
+    - *New Feature!* The ``VisualizerGrid`` is an implementation of the ``MultipleVisualizer`` that creates axes for each visualizer using ``plt.subplots``, laying the visualizers out as a grid.
+    - *New Feature!* Added ``yellowbrick.datasets`` to load example datasets.
+    - New Experimental Feature!  An experimental ``StatsModelsWrapper`` was added to ``yellowbrick.contrib.statsmodels`` that will allow user to use StatsModels estimators with visualizers.
+    - *Enhancement!* ``ClassificationReport`` documentation to include more details about how to interpret each of the metrics and compare the reports against each other.
+    - *Enhancement!*  Modifies scoring mechanism for regressor visualizers to include the R2 value in the plot itself with the legend.
+    - *Enhancement!*  Updated and renamed the ``ThreshViz`` to be defined as ``DiscriminationThreshold``, implements a few more discrimination features such as F1 score, maximizing arguments and annotations.
+    - *Enhancement!*  Update clustering visualizers and corresponding ``distortion_score`` to handle sparse matrices.
+    - Added code of conduct to meet the GitHub community guidelines as part of our contributing documentation.
+    - Added ``is_probabilistic`` type checker and converted the type checking tests to pytest.
+    - Added a ``contrib`` module and ``DecisionBoundaries`` visualizer has been moved to it until further work is completed.
+    - Numerous fixes and improvements to documentation and tests. Add academic citation example and Zenodo DOI to the Readme.
+
+Bug Fixes:
+    - Adds ``RandomVisualizer`` for testing and add it to the ``VisualizerGrid`` test cases.
+    - Fix / update tests in ``tests.test_classifier.test_class_prediction_error.py`` to remove hardcoded data.
+
+Deprecation Warnings:
+   - ``ScatterPlotVisualizer`` is being moved to contrib in 0.8
+   - ``DecisionBoundaryVisualizer`` is being moved to contrib in 0.8
+   - ``ThreshViz`` is renamed to ``DiscriminationThreshold``.
+
+**NOTE**: These deprecation warnings originally mentioned deprecation in 0.7, but their life was extended by an additional version.
+
+.. _v0.7: https://github.com/DistrictDataLabs/yellowbrick/releases/tag/v0.7
+
+Version 0.6
+-----------
+
+* Tag: v0.6_
 * Deployed: Saturday, March 17, 2018
 * Contributors: Benjamin Bengfort, Nathan Danielsen, Rebecca Bilbro, Larry Gray, Kristen McIntyre, George Richardson, Taylor Miller, Gary Mayfield, Phillip Schafer, Jason Keung
 
@@ -35,7 +215,7 @@ Deprecation Warnings:
    - ``ScatterPlotVisualizer`` is being moved to contrib in 0.7
    - ``DecisionBoundaryVisualizer`` is being moved to contrib in 0.7
 
-.. _v0.6.0: https://github.com/DistrictDataLabs/yellowbrick/releases/tag/v0.6.0
+.. _v0.6: https://github.com/DistrictDataLabs/yellowbrick/releases/tag/v0.6
 
 Version 0.5
 -----------

@@ -80,7 +80,7 @@ class TestKElbowHelper(object):
         Test the distortion score metric function
         """
         score = distortion_score(X, y)
-        assert score == 7.6777850157143783
+        assert score == pytest.approx(69.10006514142941)
 
     @pytest.mark.parametrize("Xs", [
         csc_matrix(X), csr_matrix(X),
@@ -90,7 +90,7 @@ class TestKElbowHelper(object):
         Test the distortion score metric on a sparse array
         """
         score = distortion_score(Xs, y)
-        assert score == pytest.approx(7.6777850157143783)
+        assert score == pytest.approx(69.10006514142938)
 
     @pytest.mark.skipif(pd is None, reason="pandas is required")
     def test_distortion_score_pandas_input(self):
@@ -101,7 +101,7 @@ class TestKElbowHelper(object):
         s = pd.Series(y)
 
         score = distortion_score(df, s)
-        assert score == pytest.approx(7.6777850157143783)
+        assert score == pytest.approx(69.10006514142941)
 
 
 ##########################################################################
@@ -184,10 +184,30 @@ class TestKElbowVisualizer(VisualTestCase, DatasetMixin):
         """
 
         with pytest.raises(YellowbrickValueError):
-            KElbowVisualizer(KMeans(), k=(1,2,3,4,5))
+            KElbowVisualizer(KMeans(), k=(1, 2, 3, 'foo', 5))
 
         with pytest.raises(YellowbrickValueError):
             KElbowVisualizer(KMeans(), k="foo")
+
+    def test_valid_k(self):
+        """
+        Assert that valid values of K generate correct k_values_:
+        if k is an int, k_values_ = range(2, k+1)
+        if k is a tuple of 2 ints, k_values = range(k[0], k[1])
+        if k is an iterable, k_values_ = list(k)
+        """
+        visualizer = KElbowVisualizer(KMeans(), k=8)
+        assert visualizer.k_values_ == list(np.arange(2, 8+1))
+
+        visualizer = KElbowVisualizer(KMeans(), k=(4, 12))
+        assert visualizer.k_values_ == list(np.arange(4, 12))
+
+        visualizer = KElbowVisualizer(KMeans(), k=np.arange(10, 100, 10))
+        assert visualizer.k_values_ == list(np.arange(10, 100, 10))
+
+        visualizer = KElbowVisualizer(KMeans(),
+                                      k=[10, 20, 30, 40, 50, 60, 70, 80, 90])
+        assert visualizer.k_values_ == list(np.arange(10, 100, 10))
 
     @pytest.mark.xfail(
         sys.platform == 'win32', reason="images not close on windows"
@@ -197,11 +217,11 @@ class TestKElbowVisualizer(VisualTestCase, DatasetMixin):
         Test the distortion metric of the k-elbow visualizer
         """
         visualizer = KElbowVisualizer(
-            KMeans(random_state=0), k=5, metric="distortion", timings=False
+            KMeans(random_state=0), k=5, metric="distortion", timings=False, locate_elbow=False
         )
         visualizer.fit(X)
 
-        expected = np.array([ 7.677785,  8.364319,  8.893634,  8.013021])
+        expected = np.array([ 69.100065, 54.081571, 43.146921, 34.978487])
         assert len(visualizer.k_scores_) == 4
 
         visualizer.poof()
@@ -216,7 +236,7 @@ class TestKElbowVisualizer(VisualTestCase, DatasetMixin):
         Test the silhouette metric of the k-elbow visualizer
         """
         visualizer = KElbowVisualizer(
-            KMeans(random_state=0), k=5, metric="silhouette", timings=False
+            KMeans(random_state=0), k=5, metric="silhouette", timings=False, locate_elbow=False
         )
         visualizer.fit(X)
 
@@ -236,7 +256,7 @@ class TestKElbowVisualizer(VisualTestCase, DatasetMixin):
         """
         visualizer = KElbowVisualizer(
             KMeans(random_state=0), k=5,
-            metric="calinski_harabaz", timings=False
+            metric="calinski_harabaz", timings=False, locate_elbow=False
         )
         visualizer.fit(X)
         assert len(visualizer.k_scores_) == 4
@@ -266,7 +286,7 @@ class TestKElbowVisualizer(VisualTestCase, DatasetMixin):
         Test the twinx double axes with k-elbow timings
         """
         visualizer = KElbowVisualizer(
-            KMeans(random_state=0), k=5, timings=True
+            KMeans(random_state=0), k=5, timings=True, locate_elbow=False
         )
         visualizer.fit(X)
 

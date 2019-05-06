@@ -1,13 +1,13 @@
 # tests.test_text.test_freqdist
 # Tests for the frequency distribution visualization
 #
-# Author:   Rebecca Bilbro <rbilbro@districtdatalabs.com>
+# Author:   Rebecca Bilbro
 # Created:  2017-03-22 15:27
 #
-# Copyright (C) 2017 District Data Labs
+# Copyright (C) 2018 The scikit-yb developers
 # For license information, see LICENSE.txt
 #
-# ID: test_freqdist.py [bd9cbb9] rebecca.bilbro@bytecubed.com $
+# ID: test_freqdist.py [bd9cbb9] $
 
 """
 Tests for the frequency distribution text visualization
@@ -20,17 +20,23 @@ Tests for the frequency distribution text visualization
 import sys
 import pytest
 
+from yellowbrick.datasets import load_hobbies
 from yellowbrick.text.freqdist import *
-from tests.dataset import DatasetMixin
 from tests.base import VisualTestCase
+
 from sklearn.feature_extraction.text import CountVectorizer
 
+##########################################################################
+## Data
+##########################################################################
+
+corpus = load_hobbies()
 
 ##########################################################################
 ## FreqDist Tests
 ##########################################################################
 
-class FreqDistTests(VisualTestCase, DatasetMixin):
+class FreqDistTests(VisualTestCase):
 
     @pytest.mark.xfail(
         sys.platform == 'win32', reason="images not close on windows"
@@ -39,7 +45,6 @@ class FreqDistTests(VisualTestCase, DatasetMixin):
         """
         Assert no errors occur during freqdist integration
         """
-        corpus     = self.load_data('hobbies')
         vectorizer = CountVectorizer()
 
         docs       = vectorizer.fit_transform(corpus.data)
@@ -49,4 +54,4 @@ class FreqDistTests(VisualTestCase, DatasetMixin):
         visualizer.fit(docs)
 
         visualizer.poof()
-        self.assert_images_similar(visualizer)
+        self.assert_images_similar(visualizer, tol=1)

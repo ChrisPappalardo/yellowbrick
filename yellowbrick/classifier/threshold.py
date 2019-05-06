@@ -15,7 +15,6 @@ DiscriminationThreshold visualizer for probabilistic classifiers.
 ## Imports
 ##########################################################################
 
-import six
 import bisect
 import numpy as np
 
@@ -29,7 +28,6 @@ from yellowbrick.exceptions import YellowbrickTypeError, YellowbrickValueError
 
 from sklearn.base import clone
 from sklearn.model_selection import ShuffleSplit
-from sklearn.utils.deprecation import deprecated
 from sklearn.metrics import precision_recall_curve
 from sklearn.utils import indexable, safe_indexing
 from sklearn.utils.multiclass import type_of_target
@@ -441,7 +439,7 @@ class DiscriminationThreshold(ModelVisualizer):
         """
         if val is None:
             exclude = frozenset()
-        elif isinstance(val, six.string_types):
+        elif isinstance(val, str):
             exclude = frozenset([val.lower()])
         else:
             exclude = frozenset(map(lambda s: s.lower(), val))
@@ -562,17 +560,3 @@ def discrimination_threshold(model, X, y, ax=None, n_trials=50, cv=0.1,
 
     # Return the axes object on the visualizer
     return visualizer.ax
-
-
-##########################################################################
-## Aliases (Deprecated)
-##########################################################################
-
-@deprecated("alias for DiscriminationThreshold will be removed in v0.8")
-class ThresholdVisualizer(DiscriminationThreshold):
-    pass
-
-
-@deprecated("alias for DiscriminationThreshold will be removed in v0.8")
-class ThreshViz(DiscriminationThreshold):
-    pass

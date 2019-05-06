@@ -11,6 +11,7 @@ Welcome to the API documentation for Yellowbrick! This section contains a comple
    datasets
    anscombe
    features/index
+   target/index
    regressor/index
    classifier/index
    cluster/index
@@ -18,6 +19,7 @@ Welcome to the API documentation for Yellowbrick! This section contains a comple
    text/index
    contrib/index
    palettes
+   figures
 
 .. note:: Many examples utilize data from the UCI Machine Learning repository. In order to run the accompanying code, make sure to follow the instructions in :doc:`datasets` to download and load the required data.
 
