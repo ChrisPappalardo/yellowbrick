@@ -19,7 +19,6 @@ Base classes and mixins for feature visualizers and feature selection tools.
 ##########################################################################
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from yellowbrick.base import Visualizer
 from yellowbrick.utils import is_dataframe
@@ -232,7 +231,7 @@ class DataVisualizer(MultiFeatureVisualizer):
 ##########################################################################
 
 class SingleFeatureVisualizerMixin(object):
-    '''
+    """
     Mixin to add functionality for single feature visualizations. To use
     this mixin, simply create a new class that inherits both the
     visualizer you want to work with and the single feature mixin,
@@ -247,56 +246,52 @@ class SingleFeatureVisualizerMixin(object):
     plotsingle set to one of 'box', 'hist', or 'violin' and
     optionally set feature to the appropriate 0index of the feature you
     are interested in (otherwise the first feature will be selected).
-    '''
+    """
 
-    boxplot_params = {}
+    valid_plots = ['box', 'hist', 'violin']
 
-    hist_params = {
+    boxplot_kwargs = {}
+
+    hist_kwargs = {
         'bins': 50,
         'normed': 1,
         'facecolor': 'g',
         'alpha': 0.75,
     }
 
-    violinplot_params = {}
+    violinplot_kwargs = {}
 
-    def fit(self, X, *args, **kwargs):
-        '''
-        store X from fit method on object for later use and call parent
-        '''
+    def draw(self, X, kind='hist', column=None, **kwargs):
+        """
+        draw single feature visualization
+        """
 
-        self.X = X
+        if column is not None:
+            X = X[column]
 
-        super(SingleFeatureVisualizerMixin, self).fit(X, *args, **kwargs)
+        X = np.asarray(X)
 
-    def poof(self, plotsingle=None, feature=None, *args, **kwargs):
-        '''
-        poof single feature visualization if passed, otherwise call parent
-        '''
+        if X.ndim != 1:
+            raise TypeError(
+                "specify a single column to plot or provide 1 dimensional data"
+            )
 
-        if feature is not None:
+        if kind not in valid_plots:
+            raise ValueError("unknown plot kind '{}'".format(kind))
 
-            if type(feature) is not int:
+        if kind == 'box':
+            plt_kwargs = self.box_kwargs.copy()
+            plt_kwargs.update(kwargs)
+            self.ax.boxplot(X, **plt_kwargs)
 
-                raise TypeError('feature arg must be of type int')
+        elif kind == 'hist':
+            plt_kwargs = self.hist_kwargs.copy()
+            plt_kwargs.update(kwargs)
+            self.ax.hist(X, **plt_kwargs)
 
-            elif feature < 0 or feature >= len(self.X[0,:]):
+        elif kind == 'violin':
+            plt_kwargs = self.violinplot_kwargs.copy()
+            plt_kwargs.update(kwargs)
+            self.ax.violinplot(X, **plt_kwargs)
 
-                raise IndexError('feature index is out of range')
-
-        else:
-            feature = 0
-
-        if plotsingle == 'box':
-            plt.figure()
-            plt.boxplot(self.X[:,feature], **self.boxplot_params)
-
-        elif plotsingle == 'hist':
-            plt.figure()
-            plt.hist(self.X[:,feature], **self.hist_params)
-
-        elif plotsingle == 'violin':
-            plt.figure()
-            plt.violinplot(self.X[:,feature], **self.violinplot_params)
-
-        super(SingleFeatureVisualizerMixin, self).poof(*args, **kwargs)
+        super(SingleFeatureVisualizerMixin, self).draw(**kwargs)
